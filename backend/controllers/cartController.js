@@ -1,5 +1,6 @@
 const Cart = require('../models/Cart');
 const MenuItem = require('../models/MenuItem');
+const { foodItems } = require('../data/foodData');
 
 const getCart = async (req, res) => {
   try {
@@ -21,25 +22,36 @@ const addToCart = async (req, res) => {
   try {
     const { menuItemId, quantity = 1 } = req.body;
     
-    const menuItem = await MenuItem.findById(menuItemId).populate('restaurant');
+    // Try to find in database first, then fallback to static data
+    let menuItem = await MenuItem.findById(menuItemId).populate('restaurant');
+    
     if (!menuItem) {
-      return res.status(404).json({ message: 'Menu item not found' });
+      // Fallback to static food data
+      const staticItem = foodItems.find(item => item.id === menuItemId);
+      if (!staticItem) {
+        return res.status(404).json({ message: 'Menu item not found' });
+      }
+      
+      // Create a mock menu item for cart operations
+      menuItem = {
+        _id: staticItem.id,
+        name: staticItem.name,
+        price: staticItem.price,
+        restaurant: { _id: 'default-restaurant', name: 'Sample Restaurant' }
+      };
     }
 
     let cart = await Cart.findOne({ user: req.user.id });
     
     if (!cart) {
-      cart = new Cart({ user: req.user.id, items: [], restaurant: menuItem.restaurant._id });
-    }
-
-    // Check if item from same restaurant
-    if (cart.restaurant && cart.restaurant.toString() !== menuItem.restaurant._id.toString()) {
-      return res.status(400).json({ 
-        message: 'You can only order from one restaurant at a time' 
+      cart = new Cart({ 
+        user: req.user.id, 
+        items: [], 
+        restaurant: menuItem.restaurant._id || 'default-restaurant'
       });
     }
 
-    cart.restaurant = menuItem.restaurant._id;
+    cart.restaurant = menuItem.restaurant._id || 'default-restaurant';
 
     const existingItem = cart.items.find(item => 
       item.menuItem.toString() === menuItemId
@@ -57,9 +69,6 @@ const addToCart = async (req, res) => {
 
     cart.calculateTotal();
     await cart.save();
-    
-    await cart.populate('items.menuItem');
-    await cart.populate('restaurant', 'name');
     
     res.json({ success: true, data: cart });
   } catch (error) {
@@ -92,8 +101,27 @@ const updateCartItem = async (req, res) => {
     cart.calculateTotal();
     await cart.save();
     
-    await cart.populate('items.menuItem');
-    await cart.populate('restaurant', 'name');
+    res.json({ success: true, data: cart });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const removeFromCart = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const cart = await Cart.findOne({ user: req.user.id });
+    if (!cart) {
+      return res.status(404).json({ message: 'Cart not found' });
+    }
+
+    cart.items = cart.items.filter(item => 
+      item.menuItem.toString() !== id
+    );
+
+    cart.calculateTotal();
+    await cart.save();
     
     res.json({ success: true, data: cart });
   } catch (error) {
@@ -117,4 +145,4 @@ const clearCart = async (req, res) => {
   }
 };
 
-module.exports = { getCart, addToCart, updateCartItem, clearCart };
+module.exports = { getCart, addToCart, updateCartItem, removeFromCart, clearCart };

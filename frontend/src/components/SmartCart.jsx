@@ -102,7 +102,7 @@ const SmartCart = ({ cartItems, onUpdateQuantity, onRemoveItem, onAddCombo }) =>
             >
               <div className="flex items-center gap-4">
                 <img
-                  src={`https://source.unsplash.com/80x80/?food&sig=${item.id}`}
+                  src={`https://via.placeholder.com/80x80/f59e0b/ffffff?text=${encodeURIComponent(item.name?.substring(0, 3) || 'Food')}`}
                   alt={item.name}
                   className="w-16 h-16 rounded-xl object-cover"
                 />

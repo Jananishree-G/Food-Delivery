@@ -3,6 +3,9 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Search, MapPin, Sparkles } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 import MoodSelector from '../components/MoodSelector';
 import SmartRecommendations from '../components/SmartRecommendations';
 import RestaurantCard from '../components/RestaurantCard';
@@ -16,6 +19,9 @@ const Home = () => {
   const [selectedMood, setSelectedMood] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('');
+  
+  const { addToCart } = useCart();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     fetchRestaurants();
@@ -32,6 +38,76 @@ const Home = () => {
       setRestaurants(response.data.data);
     } catch (error) {
       console.error('Failed to fetch restaurants:', error);
+      // Fallback to local restaurant data
+      const mockRestaurants = [
+        {
+          _id: '1',
+          name: 'Pizza Palace',
+          cuisine: 'Italian',
+          rating: 4.5,
+          deliveryTime: '30-45 min',
+          deliveryFee: 0,
+          minimumOrder: 299,
+          description: 'Authentic Italian pizzas made with fresh ingredients',
+          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Pizza+Palace'
+        },
+        {
+          _id: '2',
+          name: 'Burger Hub',
+          cuisine: 'American',
+          rating: 4.3,
+          deliveryTime: '25-35 min',
+          deliveryFee: 40,
+          minimumOrder: 199,
+          description: 'Gourmet burgers and loaded fries',
+          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Burger+Hub'
+        },
+        {
+          _id: '3',
+          name: 'Spice Garden',
+          cuisine: 'Indian',
+          rating: 4.6,
+          deliveryTime: '35-50 min',
+          deliveryFee: 50,
+          minimumOrder: 349,
+          description: 'Authentic Indian cuisine with aromatic spices',
+          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Spice+Garden'
+        },
+        {
+          _id: '4',
+          name: 'Sweet Treats',
+          cuisine: 'Desserts',
+          rating: 4.8,
+          deliveryTime: '20-30 min',
+          deliveryFee: 30,
+          minimumOrder: 149,
+          description: 'Heavenly desserts and sweet delights',
+          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Sweet+Treats'
+        },
+        {
+          _id: '5',
+          name: 'Green Bowl',
+          cuisine: 'Healthy',
+          rating: 4.4,
+          deliveryTime: '20-30 min',
+          deliveryFee: 35,
+          minimumOrder: 199,
+          description: 'Fresh salads and healthy bowls',
+          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Green+Bowl'
+        },
+        {
+          _id: '6',
+          name: 'Comfort Kitchen',
+          cuisine: 'Comfort Food',
+          rating: 4.2,
+          deliveryTime: '30-40 min',
+          deliveryFee: 45,
+          minimumOrder: 249,
+          description: 'Homestyle comfort food that warms your heart',
+          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Comfort+Kitchen'
+        }
+      ];
+      setRestaurants(mockRestaurants);
     } finally {
       setLoading(false);
     }
@@ -40,6 +116,14 @@ const Home = () => {
   const loadCategoryFoods = () => {
     const foods = getFoodsByCategory(selectedCategory);
     setCategoryFoods(foods.slice(0, 8)); // Show only 8 items
+  };
+
+  const handleAddToCart = async (food) => {
+    try {
+      await addToCart(food, 1);
+    } catch (error) {
+      toast.error('Failed to add item to cart');
+    }
   };
 
   if (loading) {
@@ -70,9 +154,14 @@ const Home = () => {
               Craving Something
               <span className="bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text text-transparent"> Delicious?</span>
             </h1>
-            <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-white/80 mb-4 max-w-2xl mx-auto">
               Discover amazing food and get it delivered fresh to your door in minutes
             </p>
+            <div className="bg-blue-500/20 backdrop-blur-sm border border-blue-400/30 rounded-xl p-4 max-w-md mx-auto mb-8">
+              <p className="text-blue-200 text-sm">
+                <strong>Demo Mode:</strong> Login with test@example.com / password123
+              </p>
+            </div>
             
             {/* Search Bar */}
             <div className="max-w-4xl mx-auto">
@@ -226,6 +315,7 @@ const Home = () => {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
+                    onClick={() => handleAddToCart(food)}
                     className="w-full bg-gradient-to-r from-primary-500 to-secondary-500 text-white py-2 rounded-xl font-semibold hover:shadow-lg transition-all"
                   >
                     Add to Cart

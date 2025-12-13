@@ -31,8 +31,14 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.get('/api/auth/profile');
       setUser(response.data.user);
     } catch (error) {
-      localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
+      // Fallback to local user
+      const localUser = localStorage.getItem('currentUser');
+      if (localUser) {
+        setUser(JSON.parse(localUser));
+      } else {
+        localStorage.removeItem('token');
+        delete axios.defaults.headers.common['Authorization'];
+      }
     } finally {
       setLoading(false);
     }
@@ -46,12 +52,21 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
-      toast.success('Login successful!');
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed';
-      toast.error(message);
-      return { success: false, message };
+      // Fallback to local authentication
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      const user = users.find(u => u.email === credentials.email && u.password === credentials.password);
+      
+      if (user) {
+        const token = 'local_' + Date.now();
+        localStorage.setItem('token', token);
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        setUser(user);
+        return { success: true };
+      } else {
+        return { success: false, message: 'Invalid email or password' };
+      }
     }
   };
 
@@ -63,20 +78,40 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
-      toast.success('Registration successful!');
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Registration failed';
-      toast.error(message);
-      return { success: false, message };
+      // Fallback to local registration
+      const users = JSON.parse(localStorage.getItem('users') || '[]');
+      
+      // Check if user already exists
+      if (users.find(u => u.email === userData.email)) {
+        return { success: false, message: 'User already exists' };
+      }
+      
+      // Create new user
+      const newUser = {
+        id: Date.now().toString(),
+        ...userData,
+        createdAt: new Date().toISOString()
+      };
+      
+      users.push(newUser);
+      localStorage.setItem('users', JSON.stringify(users));
+      
+      const token = 'local_' + Date.now();
+      localStorage.setItem('token', token);
+      localStorage.setItem('currentUser', JSON.stringify(newUser));
+      setUser(newUser);
+      
+      return { success: true };
     }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('currentUser');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
-    toast.success('Logged out successfully');
   };
 
   return (

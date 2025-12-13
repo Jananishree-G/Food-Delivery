@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { categories, foodItems, getFoodsByCategory } from '../data/modernFoodData';
 import toast from 'react-hot-toast';
 import { Star, Clock, Truck, Plus, Minus } from 'lucide-react';
+import FloatingCart from '../components/FloatingCart';
 
 const RestaurantMenu = () => {
   const { id } = useParams();
@@ -15,7 +16,7 @@ const RestaurantMenu = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('meals');
   
-  const { addToCart, getItemQuantity, updateCartItem } = useCart();
+  const { addToCart, getItemQuantity, increaseQty, decreaseQty } = useCart();
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -30,32 +31,41 @@ const RestaurantMenu = () => {
       setRestaurant(restaurantRes.data.data);
     } catch (error) {
       console.error('Failed to fetch restaurant data:', error);
-      toast.error('Failed to load restaurant data');
+      // Fallback to mock restaurant data
+      const mockRestaurant = {
+        _id: id,
+        name: 'Sample Restaurant',
+        cuisine: 'Multi-Cuisine',
+        rating: 4.5,
+        deliveryTime: '30-45 min',
+        deliveryFee: 40,
+        description: 'Delicious food delivered fresh to your door'
+      };
+      setRestaurant(mockRestaurant);
     } finally {
       setLoading(false);
     }
   };
 
   const handleAddToCart = async (menuItem) => {
-    if (!isAuthenticated) {
-      toast.error('Please login to add items to cart');
-      return;
-    }
-
-    const currentQuantity = getItemQuantity(menuItem.id);
-    if (currentQuantity > 0) {
-      await updateCartItem(menuItem.id, currentQuantity + 1);
-    } else {
-      await addToCart(menuItem.id, 1);
+    try {
+      const currentQuantity = getItemQuantity(menuItem.id);
+      if (currentQuantity > 0) {
+        await increaseQty(menuItem.id);
+      } else {
+        await addToCart(menuItem, 1);
+      }
+    } catch (error) {
+      toast.error('Failed to add item to cart');
     }
   };
 
-  const handleUpdateQuantity = async (menuItemId, newQuantity) => {
-    if (newQuantity <= 0) {
-      await updateCartItem(menuItemId, 0);
-    } else {
-      await updateCartItem(menuItemId, newQuantity);
-    }
+  const handleIncrease = async (menuItemId) => {
+    await increaseQty(menuItemId);
+  };
+
+  const handleDecrease = async (menuItemId) => {
+    await decreaseQty(menuItemId);
   };
 
   const filteredItems = getFoodsByCategory(selectedCategory);
@@ -78,7 +88,7 @@ const RestaurantMenu = () => {
       {/* Restaurant Header */}
       <div className="relative h-64 overflow-hidden">
         <img 
-          src={`https://source.unsplash.com/1200x400/?restaurant,kitchen&sig=${restaurant._id}`}
+          src={`https://via.placeholder.com/1200x400/6366f1/ffffff?text=${encodeURIComponent(restaurant.name + ' Restaurant')}`}
           alt={restaurant.name} 
           className="w-full h-full object-cover"
         />
@@ -151,7 +161,7 @@ const RestaurantMenu = () => {
                 >
                   <div className="relative h-48">
                     <img 
-                      src={`https://source.unsplash.com/300x200/?food,meal&sig=${item.id}`}
+                      src={`https://via.placeholder.com/300x200/f59e0b/ffffff?text=${encodeURIComponent(item.name)}`}
                       alt={item.name} 
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
@@ -185,14 +195,14 @@ const RestaurantMenu = () => {
                       {quantity > 0 ? (
                         <div className="flex items-center gap-2 bg-white/10 rounded-full p-1">
                           <button 
-                            onClick={() => handleUpdateQuantity(item.id, quantity - 1)}
+                            onClick={() => handleDecrease(item.id)}
                             className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
                           >
                             <Minus className="w-4 h-4 text-white" />
                           </button>
                           <span className="text-white font-semibold px-3">{quantity}</span>
                           <button 
-                            onClick={() => handleUpdateQuantity(item.id, quantity + 1)}
+                            onClick={() => handleIncrease(item.id)}
                             className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
                           >
                             <Plus className="w-4 h-4 text-white" />
@@ -216,6 +226,9 @@ const RestaurantMenu = () => {
           </div>
         </div>
       </div>
+      
+      {/* Floating Cart */}
+      <FloatingCart />
     </div>
   );
 };

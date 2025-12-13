@@ -8,6 +8,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Profile from './pages/Profile'
 import OrderTracking from './pages/OrderTracking'
+import Checkout from './pages/Checkout'
 import './index.css'
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/order/:id" element={<OrderTracking />} />
         </Routes>
       </main>

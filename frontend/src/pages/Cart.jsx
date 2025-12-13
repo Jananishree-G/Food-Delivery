@@ -1,11 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Plus, Minus, Trash2, ShoppingCart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import SmartCart from '../components/SmartCart';
+import toast from 'react-hot-toast';
 
 const Cart = () => {
-  const { cart, updateCartItem, clearCart } = useCart();
+  const { cart, increaseQty, decreaseQty, removeFromCart, clearCart, itemCount, totalAmount } = useCart();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -29,28 +30,47 @@ const Cart = () => {
     );
   }
 
-  const handleQuantityChange = async (menuItemId, newQuantity) => {
-    await updateCartItem(menuItemId, newQuantity);
+  const handleIncrease = async (itemId) => {
+    await increaseQty(itemId);
   };
 
-  const handleRemoveItem = async (menuItemId) => {
-    await updateCartItem(menuItemId, 0);
+  const handleDecrease = async (itemId) => {
+    await decreaseQty(itemId);
   };
 
-  const handleAddCombo = (combo) => {
-    console.log('Adding combo:', combo);
-    // Implement combo addition logic
+  const handleRemove = async (itemId) => {
+    await removeFromCart(itemId);
   };
 
-  // Transform cart data for SmartCart component
-  const cartItems = cart.items ? cart.items.map(item => ({
-    id: item.menuItem._id,
-    name: item.menuItem.name,
-    restaurant: cart.restaurant?.name || 'Restaurant',
-    price: item.price,
-    quantity: item.quantity,
-    image: item.menuItem.image
-  })) : [];
+  const handleClearCart = async () => {
+    if (window.confirm('Are you sure you want to clear your cart?')) {
+      await clearCart();
+    }
+  };
+
+  if (!cart.items || cart.items.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center glass backdrop-blur-md border border-white/20 rounded-3xl p-12"
+        >
+          <div className="w-24 h-24 mx-auto mb-6 rounded-full glass flex items-center justify-center">
+            <ShoppingCart className="w-12 h-12 text-white/60" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-4">Your cart is empty</h2>
+          <p className="text-white/70 mb-6">Add some delicious items to get started!</p>
+          <Link 
+            to="/" 
+            className="inline-block px-8 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all"
+          >
+            Browse Restaurants
+          </Link>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-8">
@@ -67,12 +87,113 @@ const Cart = () => {
         </motion.div>
 
         <div className="max-w-4xl mx-auto">
-          <SmartCart
-            cartItems={cartItems}
-            onUpdateQuantity={handleQuantityChange}
-            onRemoveItem={handleRemoveItem}
-            onAddCombo={handleAddCombo}
-          />
+          {/* Cart Items */}
+          <div className="space-y-4 mb-8">
+            {cart.items.map((item) => {
+              const itemId = item.menuItem?.id || item.menuItem?._id || item.id;
+              const itemName = item.menuItem?.name || 'Unknown Item';
+              const itemPrice = item.price || item.menuItem?.price || 0;
+              
+              return (
+                <motion.div
+                  key={itemId}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="glass backdrop-blur-md border border-white/20 rounded-2xl p-6"
+                >
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={`https://via.placeholder.com/80x80/f59e0b/ffffff?text=${encodeURIComponent(itemName.substring(0, 3))}`}
+                      alt={itemName}
+                      className="w-20 h-20 rounded-xl object-cover"
+                    />
+                    
+                    <div className="flex-1">
+                      <h3 className="text-white font-semibold text-lg">{itemName}</h3>
+                      <p className="text-white/60">{cart.restaurant?.name || 'Restaurant'}</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-white font-bold text-xl">₹{itemPrice}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-2 bg-white/10 rounded-full p-1">
+                        <button
+                          onClick={() => handleDecrease(itemId)}
+                          className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                        >
+                          <Minus className="w-5 h-5 text-white" />
+                        </button>
+                        <span className="text-white font-semibold px-4 text-lg">{item.quantity}</span>
+                        <button
+                          onClick={() => handleIncrease(itemId)}
+                          className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                        >
+                          <Plus className="w-5 h-5 text-white" />
+                        </button>
+                      </div>
+                      
+                      {/* Remove Button */}
+                      <button
+                        onClick={() => handleRemove(itemId)}
+                        className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center hover:bg-red-500/30 transition-colors"
+                      >
+                        <Trash2 className="w-5 h-5 text-red-400" />
+                      </button>
+                      
+                      {/* Item Total */}
+                      <div className="text-right min-w-[80px]">
+                        <div className="text-white font-bold text-lg">₹{itemPrice * item.quantity}</div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+          
+          {/* Cart Summary */}
+          <div className="glass backdrop-blur-md border border-white/20 rounded-2xl p-6 mb-8">
+            <div className="space-y-3">
+              <div className="flex justify-between text-white/70">
+                <span>Subtotal ({itemCount} items)</span>
+                <span>₹{totalAmount}</span>
+              </div>
+              <div className="flex justify-between text-white/70">
+                <span>Delivery Fee</span>
+                <span>₹40</span>
+              </div>
+              <div className="flex justify-between text-white/70">
+                <span>Taxes & Fees</span>
+                <span>₹{Math.round(totalAmount * 0.05)}</span>
+              </div>
+              <hr className="border-white/20" />
+              <div className="flex justify-between text-white font-bold text-xl">
+                <span>Total</span>
+                <span>₹{totalAmount + 40 + Math.round(totalAmount * 0.05)}</span>
+              </div>
+            </div>
+            
+            <div className="flex gap-4 mt-6">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleClearCart}
+                className="flex-1 bg-red-500/20 text-red-400 py-3 rounded-2xl font-semibold hover:bg-red-500/30 transition-all"
+              >
+                Clear Cart
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate('/checkout')}
+                className="flex-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-3 rounded-2xl font-bold shadow-xl hover:shadow-2xl transition-all"
+              >
+                Proceed to Checkout
+              </motion.button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

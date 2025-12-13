@@ -22,7 +22,7 @@ const RestaurantCard = ({ restaurant }) => {
           {/* Image Container */}
           <div className="relative h-48 overflow-hidden">
             <img 
-              src={`https://source.unsplash.com/400x300/?restaurant,food&sig=${restaurant._id}`}
+              src={`https://via.placeholder.com/400x300/f59e0b/ffffff?text=${encodeURIComponent(restaurant.name || 'Restaurant')}`}
               alt={restaurant.name} 
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             />

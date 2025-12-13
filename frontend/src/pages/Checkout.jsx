@@ -1,217 +1,170 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { MapPin, CreditCard, Wallet, Banknote, ArrowLeft } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
-import { orderAPI } from '../services/api';
 import toast from 'react-hot-toast';
-import './Checkout.css';
 
 const Checkout = () => {
   const { cart, clearCart } = useCart();
-  const { user } = useAuth();
   const navigate = useNavigate();
-  
-  const [deliveryAddress, setDeliveryAddress] = useState({
-    street: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    latitude: 40.7128,
-    longitude: -74.0060
-  });
-  
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [loading, setLoading] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState('card');
+  const [address, setAddress] = useState('123 Main Street, New York, NY 10001');
 
-  if (!cart.items || cart.items.length === 0) {
-    navigate('/cart');
-    return null;
-  }
-
-  const deliveryFee = cart.restaurant?.deliveryFee || 0;
-  const subtotal = cart.totalAmount;
-  const total = subtotal + deliveryFee;
-
-  const handleAddressChange = (e) => {
-    setDeliveryAddress({
-      ...deliveryAddress,
-      [e.target.name]: e.target.value
-    });
+  const calculateSubtotal = () => {
+    if (!cart.items) return 0;
+    return cart.items.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const deliveryFee = 40;
+  const taxes = Math.round(calculateSubtotal() * 0.05);
+  const total = calculateSubtotal() + deliveryFee + taxes;
 
+  const handlePlaceOrder = async () => {
     try {
-      const orderData = {
-        deliveryAddress,
-        paymentMethod
-      };
-
-      const response = await orderAPI.create(orderData);
+      // Simulate order placement
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const orderId = 'ORD' + Math.random().toString(36).substr(2, 9).toUpperCase();
       
       toast.success('Order placed successfully!');
-      await clearCart();
-      navigate(`/order/${response.data._id}`);
+      clearCart();
+      navigate(`/order/${orderId}`);
     } catch (error) {
-      const message = error.response?.data?.message || 'Failed to place order';
-      toast.error(message);
-    } finally {
-      setLoading(false);
+      toast.error('Failed to place order. Please try again.');
     }
   };
 
+  const paymentMethods = [
+    { id: 'card', name: 'Credit/Debit Card', icon: CreditCard },
+    { id: 'upi', name: 'UPI Payment', icon: Wallet },
+    { id: 'cash', name: 'Cash on Delivery', icon: Banknote }
+  ];
+
   return (
-    <div className="checkout-page">
-      <h1>Checkout</h1>
-      
-      <div className="checkout-content">
-        <form onSubmit={handleSubmit} className="checkout-form">
-          <div className="form-section">
-            <h3>Delivery Address</h3>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="street">Street Address</label>
-                <input
-                  type="text"
-                  id="street"
-                  name="street"
-                  value={deliveryAddress.street}
-                  onChange={handleAddressChange}
-                  required
-                  placeholder="Enter street address"
-                />
-              </div>
-            </div>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="city">City</label>
-                <input
-                  type="text"
-                  id="city"
-                  name="city"
-                  value={deliveryAddress.city}
-                  onChange={handleAddressChange}
-                  required
-                  placeholder="Enter city"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="state">State</label>
-                <input
-                  type="text"
-                  id="state"
-                  name="state"
-                  value={deliveryAddress.state}
-                  onChange={handleAddressChange}
-                  required
-                  placeholder="Enter state"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="zipCode">ZIP Code</label>
-                <input
-                  type="text"
-                  id="zipCode"
-                  name="zipCode"
-                  value={deliveryAddress.zipCode}
-                  onChange={handleAddressChange}
-                  required
-                  placeholder="Enter ZIP code"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h3>Payment Method</h3>
-            
-            <div className="payment-options">
-              <label className="payment-option">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="card"
-                  checked={paymentMethod === 'card'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                />
-                <span>💳 Credit/Debit Card</span>
-              </label>
-              
-              <label className="payment-option">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="upi"
-                  checked={paymentMethod === 'upi'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                />
-                <span>📱 UPI</span>
-              </label>
-              
-              <label className="payment-option">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="cash"
-                  checked={paymentMethod === 'cash'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                />
-                <span>💵 Cash on Delivery</span>
-              </label>
-            </div>
-          </div>
-
-          <button 
-            type="submit" 
-            className="btn btn-primary place-order-btn"
-            disabled={loading}
+    <div className="min-h-screen py-8">
+      <div className="container mx-auto px-6 max-w-4xl">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            onClick={() => navigate('/cart')}
+            className="w-10 h-10 rounded-full glass backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-white/10 transition-colors"
           >
-            {loading ? 'Placing Order...' : `Place Order - $${total.toFixed(2)}`}
+            <ArrowLeft className="w-5 h-5 text-white" />
           </button>
-        </form>
+          <h1 className="text-3xl font-bold text-white">Checkout</h1>
+        </div>
 
-        <div className="order-summary">
-          <h3>Order Summary</h3>
-          
-          <div className="summary-restaurant">
-            <h4>{cart.restaurant?.name}</h4>
-          </div>
-          
-          <div className="summary-items">
-            {cart.items.map(item => (
-              <div key={item.food._id} className="summary-item">
-                <span className="item-name">
-                  {item.food.name} x {item.quantity}
-                </span>
-                <span className="item-price">
-                  ${(item.price * item.quantity).toFixed(2)}
-                </span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Address & Payment */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Delivery Address */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass backdrop-blur-md border border-white/20 rounded-2xl p-6"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <MapPin className="w-6 h-6 text-primary-400" />
+                <h2 className="text-xl font-semibold text-white">Delivery Address</h2>
               </div>
-            ))}
+              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                <p className="text-white font-medium mb-2">Home</p>
+                <p className="text-white/70">{address}</p>
+                <button className="text-primary-400 text-sm mt-2 hover:text-primary-300">
+                  Change Address
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Payment Method */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="glass backdrop-blur-md border border-white/20 rounded-2xl p-6"
+            >
+              <h2 className="text-xl font-semibold text-white mb-4">Payment Method</h2>
+              <div className="space-y-3">
+                {paymentMethods.map((method) => {
+                  const Icon = method.icon;
+                  return (
+                    <label
+                      key={method.id}
+                      className={`flex items-center gap-3 p-4 rounded-xl cursor-pointer transition-all ${
+                        selectedPayment === method.id
+                          ? 'bg-primary-500/20 border border-primary-400/50'
+                          : 'bg-white/5 border border-white/10 hover:bg-white/10'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="payment"
+                        value={method.id}
+                        checked={selectedPayment === method.id}
+                        onChange={(e) => setSelectedPayment(e.target.value)}
+                        className="sr-only"
+                      />
+                      <Icon className="w-5 h-5 text-white" />
+                      <span className="text-white font-medium">{method.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </motion.div>
           </div>
-          
-          <div className="summary-totals">
-            <div className="summary-line">
-              <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
-            </div>
+
+          {/* Right Column - Order Summary */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="glass backdrop-blur-md border border-white/20 rounded-2xl p-6 h-fit"
+          >
+            <h2 className="text-xl font-semibold text-white mb-4">Order Summary</h2>
             
-            <div className="summary-line">
-              <span>Delivery Fee</span>
-              <span>${deliveryFee.toFixed(2)}</span>
+            {/* Items */}
+            <div className="space-y-3 mb-6">
+              {cart.items?.map((item) => (
+                <div key={item.id} className="flex justify-between text-sm">
+                  <span className="text-white/70">
+                    {item.quantity}x {item.name}
+                  </span>
+                  <span className="text-white">₹{item.price * item.quantity}</span>
+                </div>
+              ))}
             </div>
-            
-            <div className="summary-line total">
-              <span>Total</span>
-              <span>${total.toFixed(2)}</span>
+
+            {/* Totals */}
+            <div className="space-y-2 border-t border-white/20 pt-4">
+              <div className="flex justify-between text-white/70">
+                <span>Subtotal</span>
+                <span>₹{calculateSubtotal()}</span>
+              </div>
+              <div className="flex justify-between text-white/70">
+                <span>Delivery Fee</span>
+                <span>₹{deliveryFee}</span>
+              </div>
+              <div className="flex justify-between text-white/70">
+                <span>Taxes</span>
+                <span>₹{taxes}</span>
+              </div>
+              <div className="flex justify-between text-white font-bold text-lg border-t border-white/20 pt-2">
+                <span>Total</span>
+                <span>₹{total}</span>
+              </div>
             </div>
-          </div>
+
+            {/* Place Order Button */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handlePlaceOrder}
+              className="w-full mt-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all"
+            >
+              Place Order ₹{total}
+            </motion.button>
+          </motion.div>
         </div>
       </div>
     </div>

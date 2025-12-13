@@ -14,15 +14,30 @@ export const useCart = () => {
 };
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState({ items: [], totalAmount: 0 });
+  const [cart, setCart] = useState({ items: [], totalAmount: 0, restaurant: null });
   const [loading, setLoading] = useState(false);
   const { isAuthenticated } = useAuth();
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (error) {
+        console.error('Failed to parse saved cart:', error);
+      }
+    }
+  }, []);
+
+  // Save cart to localStorage whenever cart changes
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cart));
+  }, [cart]);
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchCart();
-    } else {
-      setCart({ items: [], totalAmount: 0 });
     }
   }, [isAuthenticated]);
 
@@ -33,51 +48,192 @@ export const CartProvider = ({ children }) => {
       setCart(response.data.data);
     } catch (error) {
       console.error('Failed to fetch cart:', error);
+      // Use local storage as fallback
+      const localCart = localStorage.getItem('cart');
+      if (localCart) {
+        try {
+          setCart(JSON.parse(localCart));
+        } catch (error) {
+          console.error('Failed to parse local cart:', error);
+          setCart({ items: [], totalAmount: 0, restaurant: null });
+        }
+      } else {
+        setCart({ items: [], totalAmount: 0, restaurant: null });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const addToCart = async (menuItemId, quantity = 1) => {
-    try {
-      const response = await axios.post('/api/cart/add', { menuItemId, quantity });
-      setCart(response.data.data);
-      toast.success('Item added to cart');
-      return { success: true };
-    } catch (error) {
-      const message = error.response?.data?.message || 'Failed to add item to cart';
-      toast.error(message);
-      return { success: false, message };
+  const addToCart = async (menuItem, quantity = 1) => {
+    if (isAuthenticated) {
+      try {
+        const response = await axios.post('/api/cart/add', { 
+          menuItemId: menuItem.id || menuItem._id, 
+          quantity 
+        });
+        setCart(response.data.data);
+        toast.success(`${menuItem.name} added to cart!`);
+        return { success: true };
+      } catch (error) {
+        console.error('Backend cart add failed:', error);
+      }
     }
+    
+    // Local cart fallback
+    const itemId = menuItem.id || menuItem._id;
+    const existingItem = cart.items.find(item => 
+      (item.menuItem?.id === itemId) || (item.menuItem?._id === itemId) || (item.id === itemId)
+    );
+    
+    let newCart;
+    if (existingItem) {
+      newCart = {
+        ...cart,
+        items: cart.items.map(item => 
+          ((item.menuItem?.id === itemId) || (item.menuItem?._id === itemId) || (item.id === itemId))
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        )
+      };
+    } else {
+      newCart = {
+        ...cart,
+        items: [...cart.items, {
+          id: itemId,
+          menuItem: menuItem,
+          quantity: quantity,
+          price: menuItem.price
+        }]
+      };
+    }
+    
+    newCart.totalAmount = newCart.items.reduce((total, item) => 
+      total + (item.price * item.quantity), 0
+    );
+    
+    setCart(newCart);
+    toast.success(`${menuItem.name} added to cart!`);
+    return { success: true };
   };
 
   const updateCartItem = async (menuItemId, quantity) => {
-    try {
-      const response = await axios.put('/api/cart/update', { menuItemId, quantity });
-      setCart(response.data.data);
-      return { success: true };
-    } catch (error) {
-      const message = error.response?.data?.message || 'Failed to update cart';
-      toast.error(message);
-      return { success: false, message };
+    if (isAuthenticated) {
+      try {
+        const response = await axios.put('/api/cart/update', { menuItemId, quantity });
+        setCart(response.data.data);
+        return { success: true };
+      } catch (error) {
+        console.error('Backend cart update failed:', error);
+      }
+    }
+    
+    // Local cart fallback
+    let newCart;
+    if (quantity <= 0) {
+      newCart = {
+        ...cart,
+        items: cart.items.filter(item => 
+          (item.menuItem?.id !== menuItemId) && 
+          (item.menuItem?._id !== menuItemId) && 
+          (item.id !== menuItemId)
+        )
+      };
+    } else {
+      newCart = {
+        ...cart,
+        items: cart.items.map(item => {
+          if ((item.menuItem?.id === menuItemId) || 
+              (item.menuItem?._id === menuItemId) || 
+              (item.id === menuItemId)) {
+            return { ...item, quantity };
+          }
+          return item;
+        })
+      };
+    }
+    
+    newCart.totalAmount = newCart.items.reduce((total, item) => 
+      total + (item.price * item.quantity), 0
+    );
+    
+    setCart(newCart);
+    return { success: true };
+  };
+
+  const removeFromCart = async (menuItemId) => {
+    if (isAuthenticated) {
+      try {
+        const response = await axios.delete(`/api/cart/remove/${menuItemId}`);
+        setCart(response.data.data);
+        toast.success('Item removed from cart');
+        return { success: true };
+      } catch (error) {
+        console.error('Backend cart remove failed:', error);
+      }
+    }
+    
+    // Local cart fallback
+    const newCart = {
+      ...cart,
+      items: cart.items.filter(item => 
+        (item.menuItem?.id !== menuItemId) && 
+        (item.menuItem?._id !== menuItemId) && 
+        (item.id !== menuItemId)
+      )
+    };
+    
+    newCart.totalAmount = newCart.items.reduce((total, item) => 
+      total + (item.price * item.quantity), 0
+    );
+    
+    setCart(newCart);
+    toast.success('Item removed from cart');
+    return { success: true };
+  };
+
+  const increaseQty = async (menuItemId) => {
+    const item = cart.items.find(item => 
+      (item.menuItem?.id === menuItemId) || 
+      (item.menuItem?._id === menuItemId) || 
+      (item.id === menuItemId)
+    );
+    if (item) {
+      return updateCartItem(menuItemId, item.quantity + 1);
+    }
+  };
+
+  const decreaseQty = async (menuItemId) => {
+    const item = cart.items.find(item => 
+      (item.menuItem?.id === menuItemId) || 
+      (item.menuItem?._id === menuItemId) || 
+      (item.id === menuItemId)
+    );
+    if (item && item.quantity > 1) {
+      return updateCartItem(menuItemId, item.quantity - 1);
+    } else if (item && item.quantity === 1) {
+      return removeFromCart(menuItemId);
     }
   };
 
   const clearCart = async () => {
-    try {
-      await axios.delete('/api/cart/clear');
-      setCart({ items: [], totalAmount: 0 });
-      toast.success('Cart cleared');
-      return { success: true };
-    } catch (error) {
-      const message = error.response?.data?.message || 'Failed to clear cart';
-      toast.error(message);
-      return { success: false, message };
+    if (isAuthenticated) {
+      try {
+        await axios.delete('/api/cart/clear');
+      } catch (error) {
+        console.error('Backend cart clear failed:', error);
+      }
     }
+    
+    setCart({ items: [], totalAmount: 0, restaurant: null });
+    toast.success('Cart cleared');
+    return { success: true };
   };
 
   const getItemQuantity = (menuItemId) => {
-    const item = cart.items?.find(item => item.menuItem._id === menuItemId);
+    const item = cart.items?.find(item => 
+      item.menuItem?._id === menuItemId || item.menuItem?.id === menuItemId
+    );
     return item ? item.quantity : 0;
   };
 
@@ -87,9 +243,12 @@ export const CartProvider = ({ children }) => {
       loading,
       addToCart,
       updateCartItem,
+      removeFromCart,
+      increaseQty,
+      decreaseQty,
       clearCart,
       getItemQuantity,
-      itemCount: cart.items?.length || 0,
+      itemCount: cart.items?.reduce((total, item) => total + item.quantity, 0) || 0,
       totalAmount: cart.totalAmount || 0,
     }}>
       {children}
