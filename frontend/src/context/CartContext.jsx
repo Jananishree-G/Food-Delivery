@@ -128,34 +128,22 @@ export const CartProvider = ({ children }) => {
       }
     }
     
-    // Local cart fallback
-    let newCart;
-    if (quantity <= 0) {
-      newCart = {
-        ...cart,
-        items: cart.items.filter(item => 
-          (item.menuItem?.id !== menuItemId) && 
-          (item.menuItem?._id !== menuItemId) && 
-          (item.id !== menuItemId)
-        )
-      };
-    } else {
-      newCart = {
-        ...cart,
-        items: cart.items.map(item => {
-          if ((item.menuItem?.id === menuItemId) || 
-              (item.menuItem?._id === menuItemId) || 
-              (item.id === menuItemId)) {
-            return { ...item, quantity };
-          }
-          return item;
-        })
-      };
-    }
+    // Local cart fallback - create new cart object to avoid mutations
+    const newItems = cart.items.map(item => {
+      const itemId = item.menuItem?.id || item.menuItem?._id || item.id;
+      if (itemId === menuItemId) {
+        return { ...item, quantity: Math.max(0, quantity) };
+      }
+      return { ...item };
+    }).filter(item => item.quantity > 0);
     
-    newCart.totalAmount = newCart.items.reduce((total, item) => 
-      total + (item.price * item.quantity), 0
-    );
+    const newCart = {
+      ...cart,
+      items: newItems,
+      totalAmount: newItems.reduce((total, item) => 
+        total + ((item.price || item.menuItem?.price || 0) * item.quantity), 0
+      )
+    };
     
     setCart(newCart);
     return { success: true };
@@ -173,19 +161,19 @@ export const CartProvider = ({ children }) => {
       }
     }
     
-    // Local cart fallback
+    // Local cart fallback - create new cart object
+    const newItems = cart.items.filter(item => {
+      const itemId = item.menuItem?.id || item.menuItem?._id || item.id;
+      return itemId !== menuItemId;
+    });
+    
     const newCart = {
       ...cart,
-      items: cart.items.filter(item => 
-        (item.menuItem?.id !== menuItemId) && 
-        (item.menuItem?._id !== menuItemId) && 
-        (item.id !== menuItemId)
+      items: newItems,
+      totalAmount: newItems.reduce((total, item) => 
+        total + ((item.price || item.menuItem?.price || 0) * item.quantity), 0
       )
     };
-    
-    newCart.totalAmount = newCart.items.reduce((total, item) => 
-      total + (item.price * item.quantity), 0
-    );
     
     setCart(newCart);
     toast.success('Item removed from cart');
@@ -193,27 +181,33 @@ export const CartProvider = ({ children }) => {
   };
 
   const increaseQty = async (menuItemId) => {
-    const item = cart.items.find(item => 
-      (item.menuItem?.id === menuItemId) || 
-      (item.menuItem?._id === menuItemId) || 
-      (item.id === menuItemId)
-    );
+    const item = cart.items.find(item => {
+      const itemId = item.menuItem?.id || item.menuItem?._id || item.id;
+      return itemId === menuItemId;
+    });
+    
     if (item) {
-      return updateCartItem(menuItemId, item.quantity + 1);
+      const newQuantity = item.quantity + 1;
+      return updateCartItem(menuItemId, newQuantity);
     }
+    return { success: false, message: 'Item not found' };
   };
 
   const decreaseQty = async (menuItemId) => {
-    const item = cart.items.find(item => 
-      (item.menuItem?.id === menuItemId) || 
-      (item.menuItem?._id === menuItemId) || 
-      (item.id === menuItemId)
-    );
-    if (item && item.quantity > 1) {
-      return updateCartItem(menuItemId, item.quantity - 1);
-    } else if (item && item.quantity === 1) {
-      return removeFromCart(menuItemId);
+    const item = cart.items.find(item => {
+      const itemId = item.menuItem?.id || item.menuItem?._id || item.id;
+      return itemId === menuItemId;
+    });
+    
+    if (item) {
+      if (item.quantity > 1) {
+        const newQuantity = item.quantity - 1;
+        return updateCartItem(menuItemId, newQuantity);
+      } else {
+        return removeFromCart(menuItemId);
+      }
     }
+    return { success: false, message: 'Item not found' };
   };
 
   const clearCart = async () => {

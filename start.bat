@@ -1,24 +1,21 @@
 @echo off
-echo Starting Food Delivery App...
+echo 🚀 Starting Food Delivery App...
 echo.
 
-echo 1. Starting Backend Server...
-cd backend
-start "Backend Server" cmd /k "npm start"
-cd ..
+echo 📦 Starting Backend Server...
+start "Backend Server" cmd /k "cd backend && npm install && npm start"
 
-echo 2. Waiting for backend to start...
-timeout /t 5 /nobreak > nul
+echo ⏳ Waiting for backend to initialize...
+timeout /t 5
 
-echo 3. Starting Frontend Development Server...
-cd frontend
-start "Frontend Server" cmd /k "npm run dev"
-cd ..
+echo 🎨 Starting Frontend Server...
+start "Frontend Server" cmd /k "cd frontend && npm install && npm run dev"
 
 echo.
-echo Both servers are starting...
-echo Backend: http://localhost:5000
-echo Frontend: http://localhost:3000
+echo ✅ App is starting up!
+echo 🌐 Frontend: http://localhost:5173
+echo 🔧 Backend: http://localhost:5001
 echo.
-echo Press any key to exit...
-pause > nul
+echo 📧 Test Login: test@example.com / password123
+echo.
+pause

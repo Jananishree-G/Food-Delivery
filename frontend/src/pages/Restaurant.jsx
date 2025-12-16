@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { restaurantAPI, foodAPI } from '../services/api';
+import { foodItems } from '../data/modernFoodData';
 import FoodCard from '../components/FoodCard';
 import './Restaurant.css';
 
@@ -23,6 +24,86 @@ const Restaurant = () => {
       setFoods(foodsRes.data);
     } catch (error) {
       console.error('Failed to load restaurant data:', error);
+      // Fallback to mock data
+      const mockRestaurants = [
+        {
+          _id: '1',
+          name: 'Pizza Palace',
+          cuisine: 'Italian',
+          rating: 4.5,
+          deliveryTime: '30-45 min',
+          deliveryFee: 0,
+          minimumOrder: 299,
+          description: 'Authentic Italian pizzas made with fresh ingredients',
+          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt69VdP5o8YBDMPIgyU48n9gLnndfcpwe62g&s'
+        },
+        {
+          _id: '2',
+          name: 'Burger Hub',
+          cuisine: 'American',
+          rating: 4.3,
+          deliveryTime: '25-35 min',
+          deliveryFee: 40,
+          minimumOrder: 199,
+          description: 'Gourmet burgers and loaded fries',
+          image: 'https://static.wixstatic.com/media/9a1d3f_1d3fc69803b646bfb2d460a528cbb6c4~mv2.png'
+        },
+        {
+          _id: '3',
+          name: 'Spice Garden',
+          cuisine: 'Indian',
+          rating: 4.6,
+          deliveryTime: '35-50 min',
+          deliveryFee: 50,
+          minimumOrder: 349,
+          description: 'Authentic Indian cuisine with aromatic spices',
+          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTSnSNuUF5HWF0kws7CUBd3LUoSUXt-5Q6zyA&s'
+        },
+        {
+          _id: '4',
+          name: 'Sweet Treats',
+          cuisine: 'Desserts',
+          rating: 4.8,
+          deliveryTime: '20-30 min',
+          deliveryFee: 30,
+          minimumOrder: 149,
+          description: 'Heavenly desserts and sweet delights',
+          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStn3YAHOwGo5Ristkf0h_iGEgjTJgW_S3Qjw&s'
+        },
+        {
+          _id: '5',
+          name: 'Green Bowl',
+          cuisine: 'Healthy',
+          rating: 4.4,
+          deliveryTime: '20-30 min',
+          deliveryFee: 35,
+          minimumOrder: 199,
+          description: 'Fresh salads and healthy bowls',
+          image: 'https://content3.jdmagicbox.com/v2/comp/vijayawada/c8/0866px866.x866.240126204724.q3c8/catalogue/green-bowl-restaurant-bhavanipuram-vijayawada-restaurants-caUhrsqB2U.jpg'
+        },
+        {
+          _id: '6',
+          name: 'Comfort Kitchen',
+          cuisine: 'Comfort Food',
+          rating: 4.2,
+          deliveryTime: '30-40 min',
+          deliveryFee: 45,
+          minimumOrder: 249,
+          description: 'Homestyle comfort food that warms your heart',
+          image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2d/41/4a/6c/caption.jpg?w=900&h=500&s=1'
+        }
+      ];
+      
+      const mockRestaurant = mockRestaurants.find(r => r._id === id);
+      if (mockRestaurant) {
+        setRestaurant(mockRestaurant);
+        // Map food items to include _id for compatibility with FoodCard
+        const mappedFoods = foodItems.slice(0, 15).map(food => ({
+          ...food,
+          _id: food.id // Ensure _id exists for compatibility
+        }));
+        setFoods(mappedFoods);
+      }
     } finally {
       setLoading(false);
     }
@@ -60,7 +141,7 @@ const Restaurant = () => {
     <div className="restaurant-page">
       <div className="restaurant-header">
         <div className="restaurant-image">
-          <img src={restaurant.image} alt={restaurant.name} />
+          <img src={restaurant.image || `https://via.placeholder.com/400x300/f59e0b/ffffff?text=${encodeURIComponent(restaurant.name || 'Restaurant')}`} alt={restaurant.name} />
         </div>
         
         <div className="restaurant-details">

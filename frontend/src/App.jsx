@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import Navbar from './components/Navbar'
+import Footer from './components/Footer'
 import Home from './pages/Home'
 import RestaurantMenu from './pages/RestaurantMenu'
 import Cart from './pages/Cart'
@@ -9,6 +10,7 @@ import Signup from './pages/Signup'
 import Profile from './pages/Profile'
 import OrderTracking from './pages/OrderTracking'
 import Checkout from './pages/Checkout'
+import Offers from './pages/Offers'
 import './index.css'
 
 function App() {
@@ -25,8 +27,10 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order/:id" element={<OrderTracking />} />
+          <Route path="/offers" element={<Offers />} />
         </Routes>
       </main>
+      <Footer />
       <Toaster 
         position="top-right"
         toastOptions={{

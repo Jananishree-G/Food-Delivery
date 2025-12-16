@@ -47,6 +47,20 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
+/* Floating Animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
 /* Mood gradient backgrounds */
 .mood-happy {
   background: linear-gradient(135deg, #FFD700, #FFA500);

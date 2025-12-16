@@ -42,8 +42,13 @@ const Checkout = () => {
   ];
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="container mx-auto px-6 max-w-4xl">
+    <div className="min-h-screen py-8 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900" />
+      <div className="absolute top-10 right-10 w-36 h-36 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full opacity-20 animate-pulse" />
+      <div className="absolute bottom-10 left-10 w-28 h-28 bg-gradient-to-r from-orange-500 to-red-500 rounded-full opacity-20 animate-pulse" style={{ animationDelay: '1.5s' }} />
+      
+      <div className="container mx-auto px-6 max-w-4xl relative z-10">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button

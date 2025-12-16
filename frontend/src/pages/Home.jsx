@@ -19,6 +19,9 @@ const Home = () => {
   const [selectedMood, setSelectedMood] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('');
+  const [restaurantImages, setRestaurantImages] = useState({});
+  const [filteredRestaurants, setFilteredRestaurants] = useState([]);
+  const [filteredFoods, setFilteredFoods] = useState([]);
   
   const { addToCart } = useCart();
   const { isAuthenticated } = useAuth();
@@ -26,7 +29,12 @@ const Home = () => {
   useEffect(() => {
     fetchRestaurants();
     loadCategoryFoods();
+    loadRestaurantImages();
   }, []);
+
+  useEffect(() => {
+    handleSearch();
+  }, [searchQuery, restaurants, categoryFoods]);
 
   useEffect(() => {
     loadCategoryFoods();
@@ -38,7 +46,8 @@ const Home = () => {
       setRestaurants(response.data.data);
     } catch (error) {
       console.error('Failed to fetch restaurants:', error);
-      // Fallback to local restaurant data
+      // Fallback to local restaurant data with dynamic images
+      await loadRestaurantImages();
       const mockRestaurants = [
         {
           _id: '1',
@@ -49,7 +58,7 @@ const Home = () => {
           deliveryFee: 0,
           minimumOrder: 299,
           description: 'Authentic Italian pizzas made with fresh ingredients',
-          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Pizza+Palace'
+          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRt69VdP5o8YBDMPIgyU48n9gLnndfcpwe62g&s'
         },
         {
           _id: '2',
@@ -60,7 +69,7 @@ const Home = () => {
           deliveryFee: 40,
           minimumOrder: 199,
           description: 'Gourmet burgers and loaded fries',
-          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Burger+Hub'
+          image: 'https://static.wixstatic.com/media/9a1d3f_1d3fc69803b646bfb2d460a528cbb6c4~mv2.png'
         },
         {
           _id: '3',
@@ -71,7 +80,7 @@ const Home = () => {
           deliveryFee: 50,
           minimumOrder: 349,
           description: 'Authentic Indian cuisine with aromatic spices',
-          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Spice+Garden'
+          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTSnSNuUF5HWF0kws7CUBd3LUoSUXt-5Q6zyA&s'
         },
         {
           _id: '4',
@@ -82,7 +91,7 @@ const Home = () => {
           deliveryFee: 30,
           minimumOrder: 149,
           description: 'Heavenly desserts and sweet delights',
-          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Sweet+Treats'
+          image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStn3YAHOwGo5Ristkf0h_iGEgjTJgW_S3Qjw&s'
         },
         {
           _id: '5',
@@ -93,7 +102,7 @@ const Home = () => {
           deliveryFee: 35,
           minimumOrder: 199,
           description: 'Fresh salads and healthy bowls',
-          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Green+Bowl'
+          image: 'https://content3.jdmagicbox.com/v2/comp/vijayawada/c8/0866px866.x866.240126204724.q3c8/catalogue/green-bowl-restaurant-bhavanipuram-vijayawada-restaurants-caUhrsqB2U.jpg'
         },
         {
           _id: '6',
@@ -104,7 +113,7 @@ const Home = () => {
           deliveryFee: 45,
           minimumOrder: 249,
           description: 'Homestyle comfort food that warms your heart',
-          image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Comfort+Kitchen'
+          image: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2d/41/4a/6c/caption.jpg?w=900&h=500&s=1'
         }
       ];
       setRestaurants(mockRestaurants);
@@ -118,12 +127,87 @@ const Home = () => {
     setCategoryFoods(foods.slice(0, 8)); // Show only 8 items
   };
 
+  const fetchRestaurantImage = async (query) => {
+    try {
+      const response = await axios.get(
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&client_id=${import.meta.env.VITE_UNSPLASH_ACCESS_KEY}&per_page=1`
+      );
+      return response.data.results[0]?.urls?.regular || null;
+    } catch (error) {
+      console.error('Error fetching restaurant image:', error);
+      return null;
+    }
+  };
+
+  const loadRestaurantImages = async () => {
+    console.log('Loading restaurant images...');
+    const imageQueries = {
+      '1': 'pizza palace restaurant wood fired oven',
+      '2': 'burger hub gourmet hamburger restaurant',
+      '3': 'spice garden indian curry restaurant',
+      '4': 'sweet treats dessert cake bakery',
+      '5': 'green bowl healthy salad fresh vegetables',
+      '6': 'comfort kitchen homestyle restaurant food'
+    };
+
+    const images = {};
+    for (const [id, query] of Object.entries(imageQueries)) {
+      try {
+        console.log(`Fetching image for restaurant ${id}: ${query}`);
+        const imageUrl = await fetchRestaurantImage(query);
+        if (imageUrl) {
+          images[id] = imageUrl;
+          console.log(`Image loaded for restaurant ${id}:`, imageUrl);
+        }
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (error) {
+        console.error(`Failed to load image for restaurant ${id}:`, error);
+      }
+    }
+    console.log('All restaurant images loaded:', images);
+    setRestaurantImages(images);
+  };
+
   const handleAddToCart = async (food) => {
     try {
       await addToCart(food, 1);
     } catch (error) {
       toast.error('Failed to add item to cart');
     }
+  };
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) {
+      setFilteredRestaurants([]);
+      setFilteredFoods([]);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    
+    // Filter restaurants
+    const matchedRestaurants = restaurants.filter(restaurant => 
+      restaurant.name.toLowerCase().includes(query) ||
+      restaurant.cuisine.toLowerCase().includes(query) ||
+      restaurant.description.toLowerCase().includes(query)
+    );
+    
+    // Filter foods with enhanced search
+    const matchedFoods = foodItems.filter(food => 
+      food.name.toLowerCase().includes(query) ||
+      food.description.toLowerCase().includes(query) ||
+      food.category.toLowerCase().includes(query) ||
+      (query.includes('south') && (food.name.includes('Dosa') || food.name.includes('Idli') || food.name.includes('Sambar'))) ||
+      (query.includes('indian') && (food.name.includes('Biryani') || food.name.includes('Curry') || food.name.includes('Masala')))
+    );
+    
+    setFilteredRestaurants(matchedRestaurants);
+    setFilteredFoods(matchedFoods);
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    handleSearch();
   };
 
   if (loading) {
@@ -154,14 +238,9 @@ const Home = () => {
               Craving Something
               <span className="bg-gradient-to-r from-primary-400 to-secondary-400 bg-clip-text text-transparent"> Delicious?</span>
             </h1>
-            <p className="text-xl text-white/80 mb-4 max-w-2xl mx-auto">
+            <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
               Discover amazing food and get it delivered fresh to your door in minutes
             </p>
-            <div className="bg-blue-500/20 backdrop-blur-sm border border-blue-400/30 rounded-xl p-4 max-w-md mx-auto mb-8">
-              <p className="text-blue-200 text-sm">
-                <strong>Demo Mode:</strong> Login with test@example.com / password123
-              </p>
-            </div>
             
             {/* Search Bar */}
             <div className="max-w-4xl mx-auto">
@@ -189,6 +268,7 @@ const Home = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  onClick={handleSearchSubmit}
                   className="px-8 py-4 bg-gradient-to-r from-primary-500 to-secondary-500 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transition-all"
                 >
                   Search
@@ -217,25 +297,120 @@ const Home = () => {
       </section>
 
       <div className="container mx-auto px-6 py-12">
+        {/* Search Results */}
+        {searchQuery && (filteredRestaurants.length > 0 || filteredFoods.length > 0) && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12"
+          >
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-white mb-2">Search Results</h2>
+              <p className="text-white/70">Found {filteredRestaurants.length + filteredFoods.length} results for "{searchQuery}"</p>
+            </div>
+            
+            {filteredRestaurants.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-2xl font-bold text-white mb-4">Restaurants</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {filteredRestaurants.map((restaurant) => (
+                    <RestaurantCard key={restaurant._id} restaurant={restaurant} />
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {filteredFoods.length > 0 && (
+              <div>
+                <h3 className="text-2xl font-bold text-white mb-4">Food Items</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {filteredFoods.map((food, index) => (
+                    <motion.div
+                      key={food.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      whileHover={{ y: -5 }}
+                      className="glass backdrop-blur-md border border-white/20 rounded-2xl overflow-hidden hover:shadow-2xl transition-all group"
+                    >
+                      <div className="relative h-48">
+                        <img
+                          src={food.image || `https://picsum.photos/300/200?random=${food.id}`}
+                          alt={food.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        {food.offer && (
+                          <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                            {food.offer}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="p-4">
+                        <h3 className="text-white font-semibold mb-2">{food.name}</h3>
+                        <p className="text-white/60 text-sm mb-3 line-clamp-2">{food.description}</p>
+                        
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-white font-bold text-lg">₹{food.price}</span>
+                          <span className="text-white/60 text-sm">{food.preparationTime} min</span>
+                        </div>
+                        
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleAddToCart(food)}
+                          className="w-full bg-gradient-to-r from-primary-500 to-secondary-500 text-white py-2 rounded-xl font-semibold hover:shadow-lg transition-all"
+                        >
+                          Add to Cart
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.section>
+        )}
+        
+        {searchQuery && filteredRestaurants.length === 0 && filteredFoods.length === 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12 text-center"
+          >
+            <div className="glass backdrop-blur-md border border-white/20 rounded-2xl p-12">
+              <div className="text-6xl mb-4">🔍</div>
+              <h3 className="text-2xl font-bold text-white mb-2">No results found</h3>
+              <p className="text-white/70">Try searching for something else or browse our categories</p>
+            </div>
+          </motion.section>
+        )}
+
         {/* Mood Selector */}
-        <MoodSelector 
-          onMoodSelect={setSelectedMood} 
-          selectedMood={selectedMood} 
-        />
+        {!searchQuery && (
+          <MoodSelector 
+            onMoodSelect={setSelectedMood} 
+            selectedMood={selectedMood} 
+          />
+        )}
 
         {/* Smart Recommendations */}
-        <SmartRecommendations 
-          userOrders={[]} 
-          selectedMood={selectedMood}
-          onItemSelect={(item) => console.log('Selected item:', item)}
-        />
+        {!searchQuery && (
+          <SmartRecommendations 
+            userOrders={[]} 
+            selectedMood={selectedMood}
+            onItemSelect={(item) => console.log('Selected item:', item)}
+          />
+        )}
 
         {/* Categories Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
-        >
+        {!searchQuery && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12"
+          >
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-white mb-2">Explore Categories</h2>
             <p className="text-white/70">What are you in the mood for?</p>
@@ -263,14 +438,16 @@ const Home = () => {
               </motion.div>
             ))}
           </div>
-        </motion.section>
+          </motion.section>
+        )}
 
         {/* Featured Foods */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-12"
-        >
+        {!searchQuery && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-12"
+          >
           <div className="flex items-center gap-3 mb-8">
             <Sparkles className="w-8 h-8 text-yellow-400" />
             <div>
@@ -324,24 +501,27 @@ const Home = () => {
               </motion.div>
             ))}
           </div>
-        </motion.section>
+          </motion.section>
+        )}
 
         {/* Restaurants Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-2">Popular Restaurants</h2>
-            <p className="text-white/70">Delivering happiness to your doorstep</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {restaurants.map((restaurant) => (
-              <RestaurantCard key={restaurant._id} restaurant={restaurant} />
-            ))}
-          </div>
-        </motion.section>
+        {!searchQuery && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-white mb-2">Popular Restaurants</h2>
+              <p className="text-white/70">Delivering happiness to your doorstep</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {restaurants.map((restaurant) => (
+                <RestaurantCard key={restaurant._id} restaurant={restaurant} />
+              ))}
+            </div>
+          </motion.section>
+        )}
       </div>
     </div>
   );

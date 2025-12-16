@@ -35,7 +35,7 @@ const FoodCard = ({ food }) => {
   return (
     <div className="food-card">
       <div className="food-image-container">
-        <img src={food.image} alt={food.name} className="food-image" />
+        <img src={food.image || `https://via.placeholder.com/300x200/f59e0b/ffffff?text=${encodeURIComponent(food.name)}`} alt={food.name} className="food-image" />
         {food.offer && (
           <div className="offer-badge">{food.offer}</div>
         )}

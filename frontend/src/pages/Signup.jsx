@@ -88,11 +88,42 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 relative overflow-hidden">
+      {/* Abstract Wave Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-rose-900 via-purple-900 to-indigo-900" />
+      
+      {/* Animated Wave Layers */}
+      <div className="absolute inset-0">
+        <svg className="absolute bottom-0 w-full h-full" viewBox="0 0 1200 800" preserveAspectRatio="none">
+          <path d="M0,400 C300,300 600,500 1200,400 L1200,800 L0,800 Z" fill="url(#gradient1)" opacity="0.3">
+            <animateTransform attributeName="transform" type="translate" values="-100 0;100 0;-100 0" dur="20s" repeatCount="indefinite" />
+          </path>
+          <path d="M0,500 C400,400 800,600 1200,500 L1200,800 L0,800 Z" fill="url(#gradient2)" opacity="0.2">
+            <animateTransform attributeName="transform" type="translate" values="100 0;-100 0;100 0" dur="15s" repeatCount="indefinite" />
+          </path>
+          <defs>
+            <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ec4899" />
+              <stop offset="100%" stopColor="#8b5cf6" />
+            </linearGradient>
+            <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#06b6d4" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      
+      {/* Floating Orbs */}
+      <div className="absolute top-1/4 left-1/4 w-4 h-4 bg-white/20 rounded-full animate-ping" />
+      <div className="absolute top-1/3 right-1/3 w-3 h-3 bg-pink-400/30 rounded-full animate-ping" style={{ animationDelay: '1s' }} />
+      <div className="absolute bottom-1/4 left-1/3 w-5 h-5 bg-blue-400/20 rounded-full animate-ping" style={{ animationDelay: '2s' }} />
+      <div className="absolute bottom-1/3 right-1/4 w-2 h-2 bg-purple-400/40 rounded-full animate-ping" style={{ animationDelay: '3s' }} />
+      
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full glass backdrop-blur-md border border-white/20 rounded-3xl p-8"
+        className="max-w-md w-full glass backdrop-blur-xl border border-white/30 rounded-3xl p-8 relative z-10 shadow-2xl"
       >
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>

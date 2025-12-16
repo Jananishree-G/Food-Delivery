@@ -69,11 +69,27 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 relative overflow-hidden">
+      {/* Modern Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-900 via-blue-900 to-cyan-900" />
+      
+      {/* Geometric Shapes */}
+      <div className="absolute top-0 left-0 w-full h-full">
+        <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-r from-pink-500/20 to-purple-500/20 rounded-3xl rotate-45 animate-pulse" />
+        <div className="absolute top-40 right-32 w-24 h-24 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 rounded-full animate-bounce" style={{ animationDuration: '3s' }} />
+        <div className="absolute bottom-32 left-1/4 w-20 h-20 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-2xl rotate-12 animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-20 right-20 w-28 h-28 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-full animate-bounce" style={{ animationDuration: '4s', animationDelay: '2s' }} />
+      </div>
+      
+      {/* Mesh Gradient Overlay */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="w-full h-full bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+      </div>
+      
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full glass backdrop-blur-md border border-white/20 rounded-3xl p-8"
+        className="max-w-md w-full glass backdrop-blur-xl border border-white/30 rounded-3xl p-8 relative z-10 shadow-2xl"
       >
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>

@@ -8,6 +8,7 @@ import { categories, foodItems, getFoodsByCategory } from '../data/modernFoodDat
 import toast from 'react-hot-toast';
 import { Star, Clock, Truck, Plus, Minus } from 'lucide-react';
 import FloatingCart from '../components/FloatingCart';
+import RatingDisplay from '../components/RatingDisplay';
 
 const RestaurantMenu = () => {
   const { id } = useParams();
@@ -98,11 +99,10 @@ const RestaurantMenu = () => {
             <h1 className="text-4xl font-bold text-white mb-2">{restaurant.name}</h1>
             <p className="text-white/80 text-lg mb-1">{restaurant.cuisine}</p>
             <p className="text-white/70 mb-4">{restaurant.description}</p>
-            <div className="flex items-center gap-6 text-white">
-              <div className="flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                <span className="font-semibold">{restaurant.rating}</span>
-              </div>
+            <div className="flex flex-wrap items-center gap-6 text-white">
+              <RatingDisplay type="restaurant" rating={restaurant.rating || 4.5} showLabel={false} size="lg" />
+              <RatingDisplay type="food" rating={4.6} showLabel={false} size="lg" />
+              <RatingDisplay type="driver" rating={4.8} showLabel={false} size="lg" />
               <div className="flex items-center gap-2">
                 <Clock className="w-5 h-5" />
                 <span>{restaurant.deliveryTime}</span>

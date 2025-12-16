@@ -3,8 +3,31 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Clock, Star, Truck } from 'lucide-react';
 
-const getRestaurantImage = (id) => {
-  return `https://picsum.photos/400/300?random=${id}`;
+const StarRating = ({ rating, size = 'sm' }) => {
+  const stars = [];
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 !== 0;
+  
+  for (let i = 0; i < fullStars; i++) {
+    stars.push(
+      <Star key={i} className={`${size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'} text-yellow-400 fill-current`} />
+    );
+  }
+  
+  if (hasHalfStar) {
+    stars.push(
+      <Star key="half" className={`${size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'} text-yellow-400 fill-current opacity-50`} />
+    );
+  }
+  
+  const emptyStars = 5 - Math.ceil(rating);
+  for (let i = 0; i < emptyStars; i++) {
+    stars.push(
+      <Star key={`empty-${i}`} className={`${size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'} text-gray-400`} />
+    );
+  }
+  
+  return <div className="flex items-center gap-1">{stars}</div>;
 };
 
 const RestaurantCard = ({ restaurant }) => {
@@ -22,16 +45,16 @@ const RestaurantCard = ({ restaurant }) => {
           {/* Image Container */}
           <div className="relative h-48 overflow-hidden">
             <img 
-              src={`https://via.placeholder.com/400x300/f59e0b/ffffff?text=${encodeURIComponent(restaurant.name || 'Restaurant')}`}
+              src={restaurant.image || `https://via.placeholder.com/400x300/f59e0b/ffffff?text=${encodeURIComponent(restaurant.name || 'Restaurant')}`}
               alt={restaurant.name} 
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             
             {/* Rating Badge */}
-            <div className="absolute top-4 left-4 flex items-center gap-1 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full">
-              <Star className="w-4 h-4 text-yellow-500 fill-current" />
-              <span className="text-sm font-semibold text-gray-800">{restaurant.rating?.toFixed(1) || '4.5'}</span>
+            <div className="absolute top-4 left-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-full">
+              <StarRating rating={restaurant.rating || 4.5} />
+              <span className="text-sm font-semibold text-gray-800">{(restaurant.rating || 4.5).toFixed(1)}</span>
             </div>
             
             {/* Free Delivery Badge */}

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import toast from 'react-hot-toast';
 import { 
   User, 
   MapPin, 
@@ -10,17 +13,43 @@ import {
   LogOut,
   Edit3,
   Package,
-  CreditCard
+  CreditCard,
+  Plus,
+  Save,
+  X
 } from 'lucide-react';
 
 const Profile = () => {
+  const { user: authUser, logout } = useAuth();
+  const { addToCart } = useCart();
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
+  const [addressForm, setAddressForm] = useState({ type: '', address: '' });
   const [user, setUser] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+91 98765 43210',
-    avatar: null,
-    joinDate: '2023-01-15'
+    name: authUser?.name || 'Guest User',
+    email: authUser?.email || 'guest@example.com',
+    phone: authUser?.phone || '+91 00000 00000',
+    avatar: authUser?.avatar || null,
+    joinDate: authUser?.createdAt ? new Date(authUser.createdAt).toLocaleDateString() : new Date().toLocaleDateString()
   });
+
+  useEffect(() => {
+    if (authUser) {
+      const userData = {
+        name: authUser.name || 'Guest User',
+        email: authUser.email || 'guest@example.com',
+        phone: authUser.phone || '+91 00000 00000',
+        avatar: authUser.avatar || null,
+        joinDate: authUser.createdAt ? new Date(authUser.createdAt).toLocaleDateString() : new Date().toLocaleDateString()
+      };
+      setUser(userData);
+      setProfileForm({
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone
+      });
+    }
+  }, [authUser]);
 
   const [orders, setOrders] = useState([
     {
@@ -68,6 +97,12 @@ const Profile = () => {
   ]);
 
   const [activeTab, setActiveTab] = useState('orders');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -81,9 +116,108 @@ const Profile = () => {
   const totalSpent = orders.reduce((sum, order) => sum + order.total, 0);
   const averageRating = orders.reduce((sum, order) => sum + order.rating, 0) / orders.length;
 
+  const handleReorder = async (order) => {
+    try {
+      const orderItems = order.items.map(itemName => ({
+        id: Math.random().toString(),
+        name: itemName,
+        price: Math.floor(order.total / order.items.length),
+        restaurant: order.restaurant,
+        image: 'https://picsum.photos/300/200?random=' + Math.floor(Math.random() * 100)
+      }));
+      
+      for (const item of orderItems) {
+        await addToCart(item, 1);
+      }
+      
+      toast.success(`${order.items.length} items added to cart!`);
+    } catch (error) {
+      toast.error('Failed to add items to cart');
+    }
+  };
+
+  const handleAddAddress = () => {
+    setShowAddressForm(true);
+    setEditingAddress(null);
+    setAddressForm({ type: '', address: '' });
+  };
+
+  const handleEditAddress = (address) => {
+    setShowAddressForm(true);
+    setEditingAddress(address.id);
+    setAddressForm({ type: address.type, address: address.address });
+  };
+
+  const handleSaveAddress = () => {
+    if (!addressForm.type || !addressForm.address) {
+      toast.error('Please fill all fields');
+      return;
+    }
+
+    if (editingAddress) {
+      setAddresses(prev => prev.map(addr => 
+        addr.id === editingAddress 
+          ? { ...addr, type: addressForm.type, address: addressForm.address }
+          : addr
+      ));
+      toast.success('Address updated successfully!');
+    } else {
+      const newAddress = {
+        id: Date.now(),
+        type: addressForm.type,
+        address: addressForm.address,
+        isDefault: addresses.length === 0
+      };
+      setAddresses(prev => [...prev, newAddress]);
+      toast.success('Address added successfully!');
+    }
+    
+    setShowAddressForm(false);
+    setAddressForm({ type: '', address: '' });
+  };
+
+  const handleEditProfile = () => {
+    setIsEditingProfile(true);
+  };
+
+  const handleSaveProfile = () => {
+    if (!profileForm.name || !profileForm.email || !profileForm.phone) {
+      toast.error('Please fill all fields');
+      return;
+    }
+
+    setUser(prev => ({
+      ...prev,
+      name: profileForm.name,
+      email: profileForm.email,
+      phone: profileForm.phone
+    }));
+    
+    setIsEditingProfile(false);
+    toast.success('Profile updated successfully!');
+  };
+
+  const handleCancelEdit = () => {
+    setProfileForm({
+      name: user.name,
+      email: user.email,
+      phone: user.phone
+    });
+    setIsEditingProfile(false);
+  };
+
   return (
-    <div className="min-h-screen py-8">
-      <div className="container mx-auto px-6">
+    <div className="min-h-screen py-8 relative overflow-hidden">
+      {/* Enhanced Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900" />
+      <div className="absolute top-0 left-0 w-full h-full">
+        <div className="absolute top-20 left-20 w-40 h-40 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full opacity-20 animate-pulse" />
+        <div className="absolute bottom-20 right-20 w-32 h-32 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full opacity-20 animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-10 w-24 h-24 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full opacity-15 animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-10 right-1/4 w-28 h-28 bg-gradient-to-r from-green-500 to-teal-500 rounded-full opacity-15 animate-pulse" style={{ animationDelay: '3s' }} />
+      </div>
+      
+      <div className="container mx-auto px-6 relative z-10">
         {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -99,15 +233,65 @@ const Profile = () => {
                   <User className="w-12 h-12 text-white" />
                 )}
               </div>
-              <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30 hover:bg-white/30 transition-colors">
+              <button 
+                onClick={handleEditProfile}
+                className="absolute -bottom-2 -right-2 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30 hover:bg-white/30 transition-colors"
+              >
                 <Edit3 className="w-4 h-4 text-white" />
               </button>
             </div>
             
             <div className="flex-1 text-center md:text-left">
-              <h1 className="text-3xl font-bold text-white mb-2">{user.name}</h1>
-              <p className="text-white/70 mb-1">{user.email}</p>
-              <p className="text-white/70 mb-4">{user.phone}</p>
+              {isEditingProfile ? (
+                <div className="space-y-3 mb-4">
+                  <input
+                    type="text"
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-4 py-2 rounded-xl glass backdrop-blur-md border border-white/20 text-white bg-white/10 placeholder-white/60 focus:outline-none focus:border-white/40"
+                    placeholder="Full Name"
+                  />
+                  <input
+                    type="email"
+                    value={profileForm.email}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-4 py-2 rounded-xl glass backdrop-blur-md border border-white/20 text-white bg-white/10 placeholder-white/60 focus:outline-none focus:border-white/40"
+                    placeholder="Email Address"
+                  />
+                  <input
+                    type="tel"
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full px-4 py-2 rounded-xl glass backdrop-blur-md border border-white/20 text-white bg-white/10 placeholder-white/60 focus:outline-none focus:border-white/40"
+                    placeholder="Phone Number"
+                  />
+                  <div className="flex gap-3">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleSaveProfile}
+                      className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold flex items-center gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      Save
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleCancelEdit}
+                      className="px-4 py-2 bg-white/10 text-white rounded-xl border border-white/20 hover:bg-white/20 transition-colors"
+                    >
+                      Cancel
+                    </motion.button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h1 className="text-3xl font-bold text-white mb-2">{user.name}</h1>
+                  <p className="text-white/70 mb-1">{user.email}</p>
+                  <p className="text-white/70 mb-4">{user.phone}</p>
+                </>
+              )}
               <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-white">{orders.length}</div>
@@ -138,6 +322,7 @@ const Profile = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={logout}
                 className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/30 hover:bg-red-500/30 transition-colors"
               >
                 <LogOut className="w-5 h-5 text-red-400" />
@@ -151,8 +336,7 @@ const Profile = () => {
           {[
             { id: 'orders', label: 'Order History', icon: Package },
             { id: 'addresses', label: 'Addresses', icon: MapPin },
-            { id: 'favorites', label: 'Favorites', icon: Heart },
-            { id: 'payments', label: 'Payments', icon: CreditCard }
+            { id: 'payments', label: 'Payment Methods', icon: CreditCard }
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -220,6 +404,7 @@ const Profile = () => {
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
+                        onClick={() => handleReorder(order)}
                         className="px-4 py-2 bg-white/10 text-white rounded-xl border border-white/20 hover:bg-white/20 transition-colors"
                       >
                         Reorder
@@ -238,8 +423,10 @@ const Profile = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-2xl font-semibold shadow-lg"
+                  onClick={handleAddAddress}
+                  className="px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-2xl font-semibold shadow-lg flex items-center gap-2"
                 >
+                  <Plus className="w-5 h-5" />
                   Add New Address
                 </motion.button>
               </div>
@@ -265,29 +452,170 @@ const Profile = () => {
                     </div>
                     
                     <div className="flex gap-2">
-                      <button className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20 hover:bg-white/20 transition-colors">
+                      <button 
+                        onClick={() => handleEditAddress(address)}
+                        className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20 hover:bg-white/20 transition-colors"
+                      >
                         <Edit3 className="w-4 h-4 text-white" />
                       </button>
                     </div>
                   </div>
                 </motion.div>
               ))}
-            </div>
-          )}
-
-          {activeTab === 'favorites' && (
-            <div className="text-center py-12">
-              <Heart className="w-16 h-16 text-white/40 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No Favorites Yet</h3>
-              <p className="text-white/60">Start adding your favorite restaurants and dishes!</p>
+              
+              {/* Address Form Modal */}
+              {showAddressForm && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="glass backdrop-blur-md border border-white/20 rounded-2xl p-6 mb-6"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-white">
+                      {editingAddress ? 'Edit Address' : 'Add New Address'}
+                    </h3>
+                    <button 
+                      onClick={() => setShowAddressForm(false)}
+                      className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                    >
+                      <X className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-white font-medium mb-2">Address Type</label>
+                      <select
+                        value={addressForm.type}
+                        onChange={(e) => setAddressForm(prev => ({ ...prev, type: e.target.value }))}
+                        className="w-full px-4 py-3 rounded-xl glass backdrop-blur-md border border-white/20 text-white bg-white/10 focus:outline-none focus:border-white/40"
+                        style={{ color: 'white' }}
+                      >
+                        <option value="" style={{ color: 'black' }}>Select Type</option>
+                        <option value="Home" style={{ color: 'black' }}>Home</option>
+                        <option value="Work" style={{ color: 'black' }}>Work</option>
+                        <option value="Other" style={{ color: 'black' }}>Other</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-white font-medium mb-2">Full Address</label>
+                      <textarea
+                        value={addressForm.address}
+                        onChange={(e) => setAddressForm(prev => ({ ...prev, address: e.target.value }))}
+                        placeholder="Enter complete address with landmarks"
+                        rows={3}
+                        className="w-full px-4 py-3 rounded-xl glass backdrop-blur-md border border-white/20 text-white bg-white/10 placeholder-white/60 focus:outline-none focus:border-white/40 resize-none"
+                      />
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleSaveAddress}
+                        className="flex-1 bg-gradient-to-r from-primary-500 to-secondary-500 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2"
+                      >
+                        <Save className="w-4 h-4" />
+                        {editingAddress ? 'Update Address' : 'Save Address'}
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setShowAddressForm(false)}
+                        className="px-6 py-3 bg-white/10 text-white rounded-xl border border-white/20 hover:bg-white/20 transition-colors"
+                      >
+                        Cancel
+                      </motion.button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </div>
           )}
 
           {activeTab === 'payments' && (
-            <div className="text-center py-12">
-              <CreditCard className="w-16 h-16 text-white/40 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Payment Methods</h3>
-              <p className="text-white/60">Manage your payment methods and billing information</p>
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-white">Payment Methods</h2>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-2xl font-semibold shadow-lg flex items-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Payment Method
+                </motion.button>
+              </div>
+              
+              <div className="space-y-4">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="glass backdrop-blur-md border border-white/20 rounded-2xl p-6"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                        <span className="text-white font-bold">UPI</span>
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold">UPI Payment</h3>
+                        <p className="text-white/60 text-sm">user@paytm</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20 hover:bg-white/20 transition-colors">
+                        <Edit3 className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="glass backdrop-blur-md border border-white/20 rounded-2xl p-6"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center">
+                        <CreditCard className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold">Credit Card</h3>
+                        <p className="text-white/60 text-sm">**** **** **** 1234</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center border border-white/20 hover:bg-white/20 transition-colors">
+                        <Edit3 className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+                
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="glass backdrop-blur-md border border-white/20 rounded-2xl p-6"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                        <span className="text-white font-bold text-xs">COD</span>
+                      </div>
+                      <div>
+                        <h3 className="text-white font-semibold">Cash on Delivery</h3>
+                        <p className="text-white/60 text-sm">Pay when you receive</p>
+                      </div>
+                    </div>
+                    <div className="text-green-400 font-semibold text-sm">
+                      Available
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
             </div>
           )}
         </motion.div>

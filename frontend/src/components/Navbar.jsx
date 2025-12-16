@@ -57,6 +57,13 @@ const Navbar = () => {
             </div>
           </motion.div>
           
+          {/* Navigation Links */}
+          <div className="hidden md:flex items-center gap-6">
+            <Link to="/offers" className="text-white hover:text-primary-300 transition-colors font-medium">
+              Offers
+            </Link>
+          </div>
+          
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="hidden lg:flex flex-1 max-w-md mx-8">
             <div className="relative w-full">
